@@ -60,7 +60,7 @@ return {
 
                 f:row {
                     f:static_text {
-                        title = "Language for metadata:",
+                        title = "Output language:",
                     },
                     f:popup_menu {
                         value = LrView.bind {
@@ -85,44 +85,6 @@ return {
                             { title = "Hebrew", value = "he" },
                             { title = "Arabic", value = "ar" },
                         },
-                    },
-                },
-
-                f:row {
-                    f:static_text {
-                        title = "Custom context for metadata:",
-                    },
-                    f:edit_field {
-                        value = LrView.bind {
-                            key = 'customContext',
-                            bind_to_object = prefs,
-                        },
-                        width_in_chars = 30,
-                    },
-                },
-
-                f:row {
-                    f:static_text {
-                        title = "Max description characters:",
-                    },
-                    f:edit_field {
-                        value = LrView.bind {
-                            key = 'maxDescriptionCharacters',
-                            bind_to_object = prefs,
-                        },
-                        width_in_chars = 5,
-                    },
-                },
-                f:row {
-                    f:static_text {
-                        title = "Min description characters:",
-                    },
-                    f:edit_field {
-                        value = LrView.bind {
-                            key = 'minDescriptionCharacters',
-                            bind_to_object = prefs,
-                        },
-                        width_in_chars = 5,
                     },
                 },
 
@@ -153,12 +115,27 @@ return {
                 },
 
                 f:row {
-                    f:checkbox {
-                        title = "Use file name for context",
+                    f:static_text {
+                        title = "Max description characters:",
+                    },
+                    f:edit_field {
                         value = LrView.bind {
-                            key = 'useFileNameForContext',
+                            key = 'maxDescriptionCharacters',
                             bind_to_object = prefs,
                         },
+                        width_in_chars = 5,
+                    },
+                },
+                f:row {
+                    f:static_text {
+                        title = "Min description characters:",
+                    },
+                    f:edit_field {
+                        value = LrView.bind {
+                            key = 'minDescriptionCharacters',
+                            bind_to_object = prefs,
+                        },
+                        width_in_chars = 5,
                     },
                 },
 
@@ -169,6 +146,29 @@ return {
                             key = 'singleWordKeywordsOnly',
                             bind_to_object = prefs,
                         },
+                    },
+                },
+
+                f:row {
+                    f:checkbox {
+                        title = "Use file names for context",
+                        value = LrView.bind {
+                            key = 'useFileNameForContext',
+                            bind_to_object = prefs,
+                        },
+                    },
+                },
+
+                f:row {
+                    f:static_text {
+                        title = "Custom context:",
+                    },
+                    f:edit_field {
+                        value = LrView.bind {
+                            key = 'customContext',
+                            bind_to_object = prefs,
+                        },
+                        width_in_chars = 30,
                     },
                 },
 

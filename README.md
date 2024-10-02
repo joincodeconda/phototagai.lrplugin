@@ -24,7 +24,7 @@ The **PhotoTag.ai Metadata Generator** is a Lightroom Classic plug-in that autom
 ## How to Use
 
 1. **Select Photos**: Select the photos you want to generate metadata for in Lightroom.
-2. **Run the Plugin**: Go to `File` > `Plug-in Extras` > `Generate Metadata for Selected Photos`.
+2. **Run the Plugin**: Go to `Library` > `Plug-in Extras` > `Generate Metadata for Selected Photos`.
 3. **Progress Bar**: The plug-in will display a progress bar while it processes the selected photos.
 4. **Review and Edit Metadata**: After processing, the generated title, description, and keywords will be added to the selected photos. You can review or further edit the metadata as needed.
 
