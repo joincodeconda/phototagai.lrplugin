@@ -5,6 +5,7 @@ local LrFunctionContext = import 'LrFunctionContext'
 local LrPrefs = import 'LrPrefs'
 local LrApplication = import 'LrApplication'
 local LrProgressScope = import 'LrProgressScope'
+local LrPasswords = import 'LrPasswords'
 
 local json = require 'dkjson'
 
@@ -24,10 +25,10 @@ end
 
 function generateMetadata(photo, callback)
     LrTasks.startAsyncTask(function()
-        local apiKey = prefs.apiToken
+        local apiToken = LrPasswords.retrieve("phototagai_token") or ""
         local url = "https://server.phototag.ai/api/keywords"
 
-        if not apiKey or apiKey == "" then
+        if not apiToken or apiToken == "" then
             LrDialogs.message("Notice", "Please enter your PhotoTag.ai API token in the Plug-in Manager settings.")
             callback()
             return
@@ -42,7 +43,7 @@ function generateMetadata(photo, callback)
         local photoPath = photo:getRawMetadata('path')
 
         local headers = {
-            { field = 'Authorization', value = 'Bearer ' .. apiKey },
+            { field = 'Authorization', value = 'Bearer ' .. apiToken },
         }
 
         local formData = {

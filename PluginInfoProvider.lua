@@ -2,6 +2,7 @@ local LrPrefs = import 'LrPrefs'
 local LrView = import 'LrView'
 local LrDialogs = import 'LrDialogs'
 local LrHttp = import 'LrHttp'
+local LrPasswords = import 'LrPasswords'
 
 local prefs = LrPrefs.prefsForPlugin()
 
@@ -31,6 +32,12 @@ return {
                         value = LrView.bind {
                             key = 'apiToken',
                             bind_to_object = prefs,
+                            transform = function(apiTokenValue)
+                                if apiTokenValue then
+                                    LrPasswords.store("phototagai_token", apiTokenValue)
+                                end
+                                return LrPasswords.retrieve("phototagai_token") or ""
+                            end
                         },
                         width_in_chars = 30
                     },
