@@ -10,7 +10,7 @@ local json = require 'dkjson'
 
 local prefs = LrPrefs.prefsForPlugin()
 
-local debug = true
+local debug = false
 
 local function findKeywordByName(catalog, keywordName)
     local allKeywords = catalog:getKeywords()
