@@ -23,24 +23,38 @@ local function findKeywordByName(catalog, keywordName)
     return nil
 end
 
+local function isValidParam(param)
+    return param ~= nil and param ~= ""
+end
+
 function generateMetadata(photo, callback)
     LrTasks.startAsyncTask(function()
         local apiToken = LrPasswords.retrieve("phototagai_token") or ""
         local url = "https://server.phototag.ai/api/keywords"
 
-        if not apiToken or apiToken == "" then
+        if not isValidParam(apiToken) then
             LrDialogs.message("Notice", "Please enter your PhotoTag.ai API token in the Plug-in Manager settings.")
             callback()
             return
         end
 
-        if not photo and debug then
-            LrDialogs.message("Error", "No photo to generate metadata for.")
+        if not photo then
+            if debug then
+                LrDialogs.message("Error", "Invalid photo.")
+            end
             callback()
             return
         end
 
         local photoPath = photo:getRawMetadata('path')
+
+        if not isValidParam(photoPath) then
+            if debug then
+                LrDialogs.message("Error", "Invalid photo path.")
+            end
+            callback()
+            return
+        end
 
         local headers = {
             { field = 'Authorization', value = 'Bearer ' .. apiToken },
@@ -48,18 +62,41 @@ function generateMetadata(photo, callback)
 
         local formData = {
             { name = 'file', fileName = photoPath, filePath = photoPath },
-            { name = 'language', value = prefs.language },
-            { name = 'maxKeywords', value = tostring(prefs.maxKeywords) },
-            { name = 'requiredKeywords', value = prefs.requiredKeywords },
-            { name = 'customContext', value = prefs.customContext },
-            { name = 'maxDescriptionCharacters', value = tostring(prefs.maxDescriptionCharacters) },
-            { name = 'minDescriptionCharacters', value = tostring(prefs.minDescriptionCharacters) },
-            { name = 'maxTitleCharacters', value = tostring(prefs.maxTitleCharacters) },
-            { name = 'minTitleCharacters', value = tostring(prefs.minTitleCharacters) },
-            { name = 'useFileNameForContext', value = tostring(prefs.useFileNameForContext) },
-            { name = 'singleWordKeywordsOnly', value = tostring(prefs.singleWordKeywordsOnly) },
-            { name = 'excludedKeywords', value = prefs.excludedKeywords },
         }
+
+        if isValidParam(prefs.language) then
+            table.insert(formData, { name = 'language', value = prefs.language })
+        end
+        if isValidParam(prefs.maxKeywords) then
+            table.insert(formData, { name = 'maxKeywords', value = tostring(prefs.maxKeywords) })
+        end
+        if isValidParam(prefs.requiredKeywords) then
+            table.insert(formData, { name = 'requiredKeywords', value = prefs.requiredKeywords })
+        end
+        if isValidParam(prefs.customContext) then
+            table.insert(formData, { name = 'customContext', value = prefs.customContext })
+        end
+        if isValidParam(prefs.maxDescriptionCharacters) then
+            table.insert(formData, { name = 'maxDescriptionCharacters', value = tostring(prefs.maxDescriptionCharacters) })
+        end
+        if isValidParam(prefs.minDescriptionCharacters) then
+            table.insert(formData, { name = 'minDescriptionCharacters', value = tostring(prefs.minDescriptionCharacters) })
+        end
+        if isValidParam(prefs.maxTitleCharacters) then
+            table.insert(formData, { name = 'maxTitleCharacters', value = tostring(prefs.maxTitleCharacters) })
+        end
+        if isValidParam(prefs.minTitleCharacters) then
+            table.insert(formData, { name = 'minTitleCharacters', value = tostring(prefs.minTitleCharacters) })
+        end
+        if isValidParam(prefs.useFileNameForContext) then
+            table.insert(formData, { name = 'useFileNameForContext', value = tostring(prefs.useFileNameForContext) })
+        end
+        if isValidParam(prefs.singleWordKeywordsOnly) then
+            table.insert(formData, { name = 'singleWordKeywordsOnly', value = tostring(prefs.singleWordKeywordsOnly) })
+        end
+        if isValidParam(prefs.excludedKeywords) then
+            table.insert(formData, { name = 'excludedKeywords', value = prefs.excludedKeywords })
+        end
 
         local response, responseHeaders = LrHttp.postMultipart(url, formData, headers)
 
@@ -117,7 +154,6 @@ LrFunctionContext.callWithContext('generateMetadata', function(context)
     progress:setPortionComplete(0, #selectedPhotos)
 
     local function processNextPhoto(index)
-
         local photo = selectedPhotos[index]
 
         generateMetadata(photo, function()
