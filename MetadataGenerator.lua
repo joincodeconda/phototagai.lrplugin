@@ -5,6 +5,7 @@ local LrFunctionContext = import 'LrFunctionContext'
 local LrPrefs = import 'LrPrefs'
 local LrApplication = import 'LrApplication'
 local LrProgressScope = import 'LrProgressScope'
+local LrView = import 'LrView'
 local LrPasswords = import 'LrPasswords'
 
 local json = require 'dkjson'
@@ -88,10 +89,10 @@ function generateMetadata(photo, callback)
         if isValidParam(prefs.minTitleCharacters) then
             table.insert(formData, { name = 'minTitleCharacters', value = tostring(prefs.minTitleCharacters) })
         end
-        if isValidParam(prefs.useFileNameForContext) then
+        if prefs.useFileNameForContext then
             table.insert(formData, { name = 'useFileNameForContext', value = tostring(prefs.useFileNameForContext) })
         end
-        if isValidParam(prefs.singleWordKeywordsOnly) then
+        if prefs.singleWordKeywordsOnly then
             table.insert(formData, { name = 'singleWordKeywordsOnly', value = tostring(prefs.singleWordKeywordsOnly) })
         end
         if isValidParam(prefs.excludedKeywords) then
@@ -143,28 +144,224 @@ function generateMetadata(photo, callback)
     end)
 end
 
-LrFunctionContext.callWithContext('generateMetadata', function(context)
-    local catalog = LrApplication.activeCatalog()
-    local selectedPhotos = catalog:getTargetPhotos()
+function showDialogAndGenerateMetadata()
 
-    local progress = LrProgressScope({
-        title = "Generating metadata for selected photos...",
-    })
-    progress:setCancelable(true)
-    progress:setPortionComplete(0, #selectedPhotos)
+    LrFunctionContext.callWithContext('showDialogAndGenerateMetadata', function(context)
+        local catalog = LrApplication.activeCatalog()
+        local selectedPhotos = catalog:getTargetPhotos()
 
-    local function processNextPhoto(index)
-        local photo = selectedPhotos[index]
+        local f = LrView.osFactory()
+        local contents = f:column {
+            bind_to_object = prefs,
+            spacing = f:control_spacing(),
 
-        generateMetadata(photo, function()
-            progress:setPortionComplete(index, #selectedPhotos)
-            if index < #selectedPhotos and not progress:isCanceled() then
-                processNextPhoto(index + 1)
-            else
-                progress:done()
-            end
-        end)
-    end
+            f:row {
+                spacing = f:label_spacing(),
+                f:static_text {
+                    title = tostring(#selectedPhotos) .. " photo(s) selected",
+                    font = "<system/bold>",
+                    width = LrView.share 'label_width',
+                },
+            },
 
-    processNextPhoto(1)
-end)
+            f:group_box {
+                title = "General Settings",
+                f:row {
+                    f:static_text {
+                        title = "Output language:",
+                        width = LrView.share 'label_width',
+                    },
+                    f:popup_menu {
+                        value = LrView.bind {
+                            key = 'language',
+                            bind_to_object = prefs,
+                        },
+                        items = {
+                            { title = "English", value = "en" },
+                            { title = "Spanish", value = "es" },
+                            { title = "French", value = "fr" },
+                            { title = "Italian", value = "it" },
+                            { title = "Portuguese", value = "pt" },
+                            { title = "German", value = "de" },
+                            { title = "Polish", value = "pl" },
+                            { title = "Russian", value = "ru" },
+                            { title = "Ukrainian", value = "uk" },
+                            { title = "Hindi", value = "hi" },
+                            { title = "Indonesian", value = "id" },
+                            { title = "Japanese", value = "ja" },
+                            { title = "Korean", value = "ko" },
+                            { title = "Chinese", value = "zh" },
+                            { title = "Hebrew", value = "he" },
+                            { title = "Arabic", value = "ar" },
+                        },
+                    },
+                },
+                f:row {
+                    f:static_text {
+                        title = "Custom context:",
+                        width = LrView.share 'label_width',
+                    },
+                    f:edit_field {
+                        value = LrView.bind {
+                            key = 'customContext',
+                            bind_to_object = prefs,
+                        },
+                        width_in_chars = 30,
+                    },
+                },
+                f:row {
+                    f:checkbox {
+                        title = "Use file names for context",
+                        value = LrView.bind {
+                            key = 'useFileNameForContext',
+                            bind_to_object = prefs,
+                        },
+                    },
+                },
+            },
+
+            f:group_box {
+                title = "Title and Description Settings",
+                f:row {
+                    f:static_text {
+                        title = "Max description characters:",
+                        width = LrView.share 'label_width',
+                    },
+                    f:edit_field {
+                        value = LrView.bind {
+                            key = 'maxDescriptionCharacters',
+                            bind_to_object = prefs,
+                        },
+                        width_in_chars = 5,
+                    },
+                },
+                f:row {
+                    f:static_text {
+                        title = "Min description characters:",
+                        width = LrView.share 'label_width',
+                    },
+                    f:edit_field {
+                        value = LrView.bind {
+                            key = 'minDescriptionCharacters',
+                            bind_to_object = prefs,
+                        },
+                        width_in_chars = 5,
+                    },
+                },
+                f:row {
+                    f:static_text {
+                        title = "Max title characters:",
+                        width = LrView.share 'label_width',
+                    },
+                    f:edit_field {
+                        value = LrView.bind {
+                            key = 'maxTitleCharacters',
+                            bind_to_object = prefs,
+                        },
+                        width_in_chars = 5,
+                    },
+                },
+                f:row {
+                    f:static_text {
+                        title = "Min title characters:",
+                        width = LrView.share 'label_width',
+                    },
+                    f:edit_field {
+                        value = LrView.bind {
+                            key = 'minTitleCharacters',
+                            bind_to_object = prefs,
+                        },
+                        width_in_chars = 5,
+                    },
+                },
+            },
+
+            f:group_box {
+                title = "Keywords Settings",
+                f:row {
+                    f:static_text {
+                        title = "Keyword count:",
+                        width = LrView.share 'label_width',
+                    },
+                    f:edit_field {
+                        value = LrView.bind {
+                            key = 'maxKeywords',
+                            bind_to_object = prefs,
+                        },
+                        width_in_chars = 5,
+                    },
+                },
+                f:row {
+                    f:static_text {
+                        title = "Required keywords (comma-separated):",
+                        width = LrView.share 'label_width',
+                    },
+                    f:edit_field {
+                        value = LrView.bind {
+                            key = 'requiredKeywords',
+                            bind_to_object = prefs,
+                        },
+                        width_in_chars = 30,
+                    },
+                },
+                f:row {
+                    f:static_text {
+                        title = "Excluded keywords (comma-separated):",
+                        width = LrView.share 'label_width',
+                    },
+                    f:edit_field {
+                        value = LrView.bind {
+                            key = 'excludedKeywords',
+                            bind_to_object = prefs,
+                        },
+                        width_in_chars = 30,
+                    },
+                },
+                f:row {
+                    f:checkbox {
+                        title = "Single word keywords only",
+                        value = LrView.bind {
+                            key = 'singleWordKeywordsOnly',
+                            bind_to_object = prefs,
+                        },
+                    },
+                },
+            },
+        }
+
+        local result = LrDialogs.presentModalDialog({
+            title = "Generate Metadata for Selected Photos",
+            contents = contents,
+            actionVerb = "Start",
+            cancelVerb = "Cancel"
+        })
+
+        if result == "ok" then
+            LrFunctionContext.callWithContext('generateMetadata', function(context)
+                local progress = LrProgressScope({
+                    title = "Generating metadata for selected photos...",
+                })
+                progress:setCancelable(true)
+                progress:setPortionComplete(0, #selectedPhotos)
+
+                local function processNextPhoto(index)
+                    local photo = selectedPhotos[index]
+
+                    generateMetadata(photo, function()
+                        progress:setPortionComplete(index, #selectedPhotos)
+                        if index < #selectedPhotos and not progress:isCanceled() then
+                            processNextPhoto(index + 1)
+                        else
+                            progress:done()
+                        end
+                    end)
+                end
+
+                processNextPhoto(1)
+            end)
+        end
+    end)
+end
+
+
+showDialogAndGenerateMetadata()
