@@ -6,17 +6,17 @@ local LrPasswords = import 'LrPasswords'
 
 local prefs = LrPrefs.prefsForPlugin()
 
-prefs.maxKeywords = prefs.maxKeywords or false
-prefs.language = prefs.language or false
-prefs.customContext = prefs.customContext or false
-prefs.maxDescriptionCharacters = prefs.maxDescriptionCharacters or false
-prefs.minDescriptionCharacters = prefs.minDescriptionCharacters or false
-prefs.maxTitleCharacters = prefs.maxTitleCharacters or false
-prefs.minTitleCharacters = prefs.minTitleCharacters or false
+prefs.maxKeywords = prefs.maxKeywords or nil
+prefs.language = prefs.language or 'en'
+prefs.customContext = prefs.customContext or nil
+prefs.maxDescriptionCharacters = prefs.maxDescriptionCharacters or nil
+prefs.minDescriptionCharacters = prefs.minDescriptionCharacters or nil
+prefs.maxTitleCharacters = prefs.maxTitleCharacters or nil
+prefs.minTitleCharacters = prefs.minTitleCharacters or nil
 prefs.useFileNameForContext = prefs.useFileNameForContext or false
 prefs.singleWordKeywordsOnly = prefs.singleWordKeywordsOnly or false
-prefs.requiredKeywords = prefs.requiredKeywords or false
-prefs.excludedKeywords = prefs.excludedKeywords or false
+prefs.requiredKeywords = prefs.requiredKeywords or nil
+prefs.excludedKeywords = prefs.excludedKeywords or nil
 
 return {
     sectionsForTopOfDialog = function(f, propertyTable)
