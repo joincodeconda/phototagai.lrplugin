@@ -12,8 +12,6 @@ local json = require 'dkjson'
 
 local prefs = LrPrefs.prefsForPlugin()
 
-local debug = false
-
 local function findKeywordByName(catalog, keywordName)
     local allKeywords = catalog:getKeywords()
     for _, keyword in ipairs(allKeywords) do
@@ -28,32 +26,45 @@ local function isValidParam(param)
     return param ~= nil and param ~= ""
 end
 
-function generateMetadata(photo, callback)
+local function isSupportedFormat(filePath)
+    local validExtensions = { "jpg", "jpeg", "png", "webp", "svg" }
+    local extension = string.lower(filePath:match("^.+(%..+)$")):sub(2)
+    for _, ext in ipairs(validExtensions) do
+        if extension == ext then
+            return true
+        end
+    end
+    return false
+end
+
+function generateMetadata(progress, photo, callback)
     LrTasks.startAsyncTask(function()
         local apiToken = LrPasswords.retrieve("phototagai_token") or ""
         local url = "https://server.phototag.ai/api/keywords"
 
         if not isValidParam(apiToken) then
-            LrDialogs.message("Notice", "Please enter your PhotoTag.ai API token in the Plug-in Manager settings.")
-            callback()
+            LrDialogs.message("Error", "Please enter your PhotoTag.ai API token in the Plug-in Manager settings.")
+            progress:done()
             return
         end
 
         if not photo then
-            if debug then
-                LrDialogs.message("Error", "Invalid photo.")
-            end
-            callback()
+            LrDialogs.message("Error", "Failed to load selected photo. Please try again or contact support.")
+            progress:done()
             return
         end
 
         local photoPath = photo:getRawMetadata('path')
 
+        if not isSupportedFormat(photoPath) then
+            LrDialogs.message("Error", "Only JPG, JPEG, PNG, WEBP, and SVG file formats are supported.")
+            progress:done()
+            return
+        end
+
         if not isValidParam(photoPath) then
-            if debug then
-                LrDialogs.message("Error", "Invalid photo path.")
-            end
-            callback()
+            LrDialogs.message("Error", "Could not find path of selected photo. Please try again or contact support.")
+            progress:done()
             return
         end
 
@@ -104,9 +115,9 @@ function generateMetadata(photo, callback)
         if response then
             local jsonResponse, _, err = json.decode(response)
 
-            if err and debug then
-                LrDialogs.message("Error", "Failed to parse JSON response: " .. err)
-                callback()
+            if err then
+                LrDialogs.message("Error", "Failed to parse response from the PhotoTag.ai API. Please try again or contact support.")
+                progress:done()
                 return
             end
 
@@ -128,16 +139,22 @@ function generateMetadata(photo, callback)
                         end
                         photo:addKeyword(existingKeyword)
                     end
-                end, { timeout = 30 })
+                end, { timeout = 60 })
 
-                if not success and debug then
-                    LrDialogs.message("Error", "Could not update metadata. Another write operation is blocking it.")
+                if not success then
+                    LrDialogs.message("Error", "Could not update metadata. Please try again or contact support.")
+                    progress:done()
+                    return
                 end
-            elseif debug then
-                LrDialogs.message("Error", "Invalid response from the PhotoTag.ai API.")
+            else
+                LrDialogs.message("Error", "Invalid response from the PhotoTag.ai API. Please try again or contact support.")
+                progress:done()
+                return
             end
-        elseif debug then
+        else
             LrDialogs.message("Error", "Failed to generate metadata. Please check your API token or network connection.")
+            progress:done()
+            return
         end
 
         callback()
@@ -347,7 +364,7 @@ function showDialogAndGenerateMetadata()
                 local function processNextPhoto(index)
                     local photo = selectedPhotos[index]
 
-                    generateMetadata(photo, function()
+                    generateMetadata(progress, photo, function()
                         progress:setPortionComplete(index, #selectedPhotos)
                         if index < #selectedPhotos and not progress:isCanceled() then
                             processNextPhoto(index + 1)

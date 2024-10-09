@@ -5,6 +5,13 @@ return {
     LrPluginName = "PhotoTag.ai Plug-in",
     LrPluginInfoUrl = "https://www.phototag.ai/",
     LrPluginInfoProvider = "PluginInfoProvider.lua",
+    LrExportMenuItems = {
+        {
+            title = "Generate Metadata for Selected Photos",
+            file = "MetadataGenerator.lua",
+            enabledWhen = "photosSelected",
+        },
+    },
     LrLibraryMenuItems = {
         {
             title = "Generate Metadata for Selected Photos",
