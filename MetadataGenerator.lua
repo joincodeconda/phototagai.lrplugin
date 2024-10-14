@@ -79,7 +79,14 @@ function generateMetadata(progress, photo, callback)
         local photoPath = exportJPEG(photo)
 
         if not isValidParam(photoPath) then
-            LrDialogs.message("Error", "Selected photo is not supported. Please try again or contact support.")
+            LrDialogs.message("Error", "Selected photo is not supported. Please contact support for assistance.")
+            progress:done()
+            return
+        end
+
+        local fileSize = LrFileUtils.fileAttributes(photoPath).fileSize
+        if fileSize > 30 * 1024 * 1024 then
+            LrDialogs.message("Error", "Selected photo is too large. Please contact support for assistance.")
             progress:done()
             return
         end
