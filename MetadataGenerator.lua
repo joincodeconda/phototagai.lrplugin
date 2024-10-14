@@ -59,7 +59,7 @@ local function exportJPEG(photo)
     return nil
 end
 
-function generateMetadata(tempFilePaths, progress, photo, callback)
+function generateMetadata(progress, photo, callback)
     LrTasks.startAsyncTask(function()
         local apiToken = LrPasswords.retrieve("phototagai_token") or ""
         local url = "https://server.phototag.ai/api/keywords"
@@ -78,16 +78,8 @@ function generateMetadata(tempFilePaths, progress, photo, callback)
 
         local photoPath = exportJPEG(photo)
 
-        if not photoPath then
-            LrDialogs.message("Error", "Selected photo is not supported. Please try again or contact support.")
-            progress:done()
-            return
-        end
-
-        table.insert(tempFilePaths, photoPath)
-
         if not isValidParam(photoPath) then
-            LrDialogs.message("Error", "Could not locate selected photo. Please try again or contact support.")
+            LrDialogs.message("Error", "Selected photo is not supported. Please try again or contact support.")
             progress:done()
             return
         end
@@ -135,6 +127,10 @@ function generateMetadata(tempFilePaths, progress, photo, callback)
         end
 
         local response, responseHeaders = LrHttp.postMultipart(url, formData, headers, 15)
+
+        if LrFileUtils.exists(photoPath) then
+            LrFileUtils.delete(photoPath)
+        end
 
         if response then
             local jsonResponse, _, err = json.decode(response)
@@ -385,22 +381,10 @@ function showDialogAndGenerateMetadata()
                 progress:setCancelable(true)
                 progress:setPortionComplete(0, #selectedPhotos)
 
-                local tempFilePaths = {}
-
-                context:addCleanupHandler(function()
-                    if tempFilePaths then
-                        for _, path in ipairs(tempFilePaths) do
-                            if LrFileUtils.exists(path) then
-                                LrFileUtils.delete(path)
-                            end
-                        end
-                    end
-                end)
-
                 local function processNextPhoto(index)
                     local photo = selectedPhotos[index]
 
-                    generateMetadata(tempFilePaths, progress, photo, function()
+                    generateMetadata(progress, photo, function()
                         progress:setPortionComplete(index, #selectedPhotos)
                         if index < #selectedPhotos and not progress:isCanceled() then
                             processNextPhoto(index + 1)
