@@ -381,20 +381,30 @@ function showDialogAndGenerateMetadata()
                 progress:setCancelable(true)
                 progress:setPortionComplete(0, #selectedPhotos)
 
-                local function processNextPhoto(index)
+                local function processNextPhoto(index, numTasks)
+                    if index > #selectedPhotos then
+                        return
+                    end
+
                     local photo = selectedPhotos[index]
 
                     generateMetadata(progress, photo, function()
-                        progress:setPortionComplete(index, #selectedPhotos)
+                        if index % numTasks == 0 then
+                            progress:setPortionComplete(index, #selectedPhotos)
+                        end
                         if index < #selectedPhotos and not progress:isCanceled() then
-                            processNextPhoto(index + 1)
+                            processNextPhoto(index + numTasks, numTasks)
                         else
                             progress:done()
                         end
                     end)
+
                 end
 
-                processNextPhoto(1)
+                local numParallelTasks = 2
+                for i = 1, numParallelTasks do
+                    processNextPhoto(i, numParallelTasks)
+                end
             end)
         end
     end)
