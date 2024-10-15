@@ -7,6 +7,7 @@ local LrPasswords = import 'LrPasswords'
 local prefs = LrPrefs.prefsForPlugin()
 
 prefs.maxKeywords = prefs.maxKeywords or nil
+prefs.minKeywords = prefs.minKeywords or nil
 prefs.language = prefs.language or 'en'
 prefs.customContext = prefs.customContext or nil
 prefs.maxDescriptionCharacters = prefs.maxDescriptionCharacters or nil

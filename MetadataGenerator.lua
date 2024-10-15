@@ -105,6 +105,9 @@ function generateMetadata(progress, photo, callback)
         if isValidParam(prefs.maxKeywords) then
             table.insert(formData, { name = 'maxKeywords', value = tostring(prefs.maxKeywords) })
         end
+        if isValidParam(prefs.minKeywords) then
+            table.insert(formData, { name = 'minKeywords', value = tostring(prefs.minKeywords) })
+        end
         if isValidParam(prefs.requiredKeywords) then
             table.insert(formData, { name = 'requiredKeywords', value = prefs.requiredKeywords })
         end
@@ -268,20 +271,26 @@ function showDialogAndGenerateMetadata()
                 title = "Title and Description Settings",
                 f:row {
                     f:static_text {
-                        title = "Max description characters:",
+                        title = "Max description characters (50-500):",
                         width = LrView.share 'label_width',
                     },
                     f:edit_field {
                         value = LrView.bind {
                             key = 'maxDescriptionCharacters',
                             bind_to_object = prefs,
+                            transform = function(value)
+                                if isValidParam(value) then
+                                    prefs.minDescriptionCharacters = ""
+                                end
+                                return value
+                            end,
                         },
                         width_in_chars = 5,
                     },
                 },
                 f:row {
                     f:static_text {
-                        title = "Min description characters:",
+                        title = "Min description characters (5-200):",
                         width = LrView.share 'label_width',
                     },
                     f:edit_field {
@@ -290,24 +299,36 @@ function showDialogAndGenerateMetadata()
                             bind_to_object = prefs,
                         },
                         width_in_chars = 5,
+                        enabled = LrView.bind {
+                            key = 'maxDescriptionCharacters',
+                            transform = function(value)
+                                return not isValidParam(value)
+                            end,
+                        },
                     },
                 },
                 f:row {
                     f:static_text {
-                        title = "Max title characters:",
+                        title = "Max title characters (50-500):",
                         width = LrView.share 'label_width',
                     },
                     f:edit_field {
                         value = LrView.bind {
                             key = 'maxTitleCharacters',
                             bind_to_object = prefs,
+                            transform = function(value)
+                                if isValidParam(value) then
+                                    prefs.minTitleCharacters = ""
+                                end
+                                return value
+                            end,
                         },
                         width_in_chars = 5,
                     },
                 },
                 f:row {
                     f:static_text {
-                        title = "Min title characters:",
+                        title = "Min title characters (5-200):",
                         width = LrView.share 'label_width',
                     },
                     f:edit_field {
@@ -316,6 +337,12 @@ function showDialogAndGenerateMetadata()
                             bind_to_object = prefs,
                         },
                         width_in_chars = 5,
+                        enabled = LrView.bind {
+                            key = 'maxTitleCharacters',
+                            transform = function(value)
+                                return not isValidParam(value)
+                            end,
+                        },
                     },
                 },
             },
@@ -324,15 +351,40 @@ function showDialogAndGenerateMetadata()
                 title = "Keywords Settings",
                 f:row {
                     f:static_text {
-                        title = "Keyword count:",
+                        title = "Maximum keyword count (5-200):",
                         width = LrView.share 'label_width',
                     },
                     f:edit_field {
                         value = LrView.bind {
                             key = 'maxKeywords',
                             bind_to_object = prefs,
+                            transform = function(value)
+                                if isValidParam(value) then
+                                    prefs.minKeywords = ""
+                                end
+                                return value
+                            end,
                         },
                         width_in_chars = 5,
+                    },
+                },
+                f:row {
+                    f:static_text {
+                        title = "Minimum keyword count (5-40):",
+                        width = LrView.share 'label_width',
+                    },
+                    f:edit_field {
+                        value = LrView.bind {
+                            key = 'minKeywords',
+                            bind_to_object = prefs,
+                        },
+                        width_in_chars = 5,
+                        enabled = LrView.bind {
+                            key = 'maxKeywords',
+                            transform = function(value)
+                                return not isValidParam(value)
+                            end,
+                        },
                     },
                 },
                 f:row {
@@ -408,7 +460,7 @@ function showDialogAndGenerateMetadata()
 
                 end
 
-                local numParallelTasks = 2
+                local numParallelTasks = 3
                 for i = 1, numParallelTasks do
                     processNextPhoto(i, numParallelTasks)
                 end
