@@ -39,8 +39,10 @@ local function exportJPEG(photo)
         LR_export_destinationType = 'specificFolder',
         LR_export_destinationPathPrefix = tempFolder,
         LR_export_useSubfolder = false,
-        LR_export_format = 'JPEG',
+        LR_format = 'JPEG',
         LR_export_colorSpace = 'sRGB',
+        LR_jpeg_useLimitSize = true,
+        LR_jpeg_limitSize = 10 * 1024,
         LR_minimizeEmbeddedMetadata = true,
         LR_removeLocationMetadata = true,
     }
