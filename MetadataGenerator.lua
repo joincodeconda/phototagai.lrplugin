@@ -12,17 +12,21 @@ local LrExportSession = import 'LrExportSession'
 local LrPathUtils = import 'LrPathUtils'
 
 local json = require 'dkjson'
-
 local prefs = LrPrefs.prefsForPlugin()
 
-local function findKeywordByName(catalog, keywordName)
-    local allKeywords = catalog:getKeywords()
-    for _, keyword in ipairs(allKeywords) do
-        if keyword:getName() == keywordName then
-            return keyword
-        end
-    end
-    return nil
+local storedKeywords = {}
+
+local function trim(s)
+    return s:match'^%s*(.*%S)' or ''
+end
+
+local function createAndAddKeyword(photo, keywordName)
+    keywordName = trim(keywordName)
+    local catalog = photo.catalog
+    local keyword = storedKeywords[keywordName] or catalog:createKeyword(keywordName, {}, true, nil, true)
+    storedKeywords[keywordName] = keyword
+    photo:addKeyword(keyword)
+    return keyword
 end
 
 local function isValidParam(param)
@@ -136,7 +140,7 @@ function generateMetadata(progress, photo, callback)
             table.insert(formData, { name = 'excludedKeywords', value = prefs.excludedKeywords })
         end
 
-        local response, responseHeaders = LrHttp.postMultipart(url, formData, headers, 15)
+        local response = LrHttp.postMultipart(url, formData, headers, 15)
 
         if LrFileUtils.exists(photoPath) then
             LrFileUtils.delete(photoPath)
@@ -162,12 +166,13 @@ function generateMetadata(progress, photo, callback)
                     photo:setRawMetadata('title', title)
                     photo:setRawMetadata('caption', description)
 
+                    local existingKeywords = photo:getRawMetadata("keywords")
+                    for _, existingKeyword in ipairs(existingKeywords) do
+                        photo:removeKeyword(existingKeyword)
+                    end
+
                     for _, keyword in ipairs(keywords) do
-                        local existingKeyword = findKeywordByName(catalog, keyword)
-                        if not existingKeyword then
-                            existingKeyword = catalog:createKeyword(keyword, {}, false, nil, true)
-                        end
-                        photo:addKeyword(existingKeyword)
+                        createAndAddKeyword(photo, keyword)
                     end
                 end, { timeout = 60 })
 
