@@ -41,9 +41,6 @@ local function exportJPEG(photo)
         LR_export_useSubfolder = false,
         LR_export_format = 'JPEG',
         LR_export_colorSpace = 'sRGB',
-        LR_jpeg_quality = 80,
-        LR_jpeg_limitSize = 0,
-        LR_export_resolution = 240,
         LR_minimizeEmbeddedMetadata = true,
         LR_removeLocationMetadata = true,
     }
@@ -149,13 +146,17 @@ function generateMetadata(progress, photo, callback)
         if response then
             local jsonResponse, _, err = json.decode(response)
 
-            if err then
+            if err or not jsonResponse then
                 LrDialogs.message("Error", "Failed to parse response from the PhotoTag.ai API. Please try again or contact support.")
                 progress:done()
                 return
             end
 
-            if jsonResponse and jsonResponse.data then
+            if jsonResponse.error then
+                LrDialogs.message("Error", jsonResponse.error .. ".")
+                progress:done()
+                return
+            elseif jsonResponse.data then
                 local title = jsonResponse.data.title
                 local description = jsonResponse.data.description
                 local keywords = jsonResponse.data.keywords
