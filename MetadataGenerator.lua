@@ -14,7 +14,25 @@ local LrPathUtils = import 'LrPathUtils'
 local json = require 'dkjson'
 local prefs = LrPrefs.prefsForPlugin()
 
+local errorCount = 0
+local errorMessages = {}
 local storedKeywords = {}
+
+local function contains(array, value)
+    for i, v in ipairs(array) do
+        if v == value then
+            return true
+        end
+    end
+    return false
+end
+
+local function logError(message)
+    errorCount = errorCount + 1
+    if not contains(errorMessages, message) then
+        table.insert(errorMessages, message)
+    end
+end
 
 local function trim(s)
     return s:match'^%s*(.*%S)' or ''
@@ -62,35 +80,35 @@ local function exportJPEG(photo)
     return nil
 end
 
-function generateMetadata(progress, photo, callback)
+function generateMetadata(photo, callback)
     LrTasks.startAsyncTask(function()
         local apiToken = LrPasswords.retrieve("phototagai_token") or ""
         local url = "https://server.phototag.ai/api/keywords"
 
         if not isValidParam(apiToken) then
-            LrDialogs.message("Error", "Please enter your PhotoTag.ai API token in the Plug-in Manager settings.")
-            progress:done()
+            logError("Please enter your PhotoTag.ai API token in the Plug-in Manager settings.")
+            callback()
             return
         end
 
         if not photo then
-            LrDialogs.message("Error", "Failed to load selected photo. Please try again or contact support.")
-            progress:done()
+            logError("File failed to load.")
+            callback()
             return
         end
 
         local photoPath = exportJPEG(photo)
 
         if not isValidParam(photoPath) then
-            LrDialogs.message("Error", "Selected photo is not supported. Please contact support for assistance.")
-            progress:done()
+            logError("File was not supported.")
+            callback()
             return
         end
 
         local fileSize = LrFileUtils.fileAttributes(photoPath).fileSize
         if fileSize > 30 * 1024 * 1024 then
-            LrDialogs.message("Error", "Selected photo is too large. Please contact support for assistance.")
-            progress:done()
+            logError("File exceeded size limit.")
+            callback()
             return
         end
 
@@ -149,14 +167,14 @@ function generateMetadata(progress, photo, callback)
             local jsonResponse, _, err = json.decode(response)
 
             if err or not jsonResponse then
-                LrDialogs.message("Error", "Failed to parse response from the PhotoTag.ai API. Please try again or contact support.")
-                progress:done()
+                logError("Failed to parse API response.")
+                callback()
                 return
             end
 
             if jsonResponse.error then
-                LrDialogs.message("Error", jsonResponse.error .. ".")
-                progress:done()
+                logError(tostring(jsonResponse.error) .. ".")
+                callback()
                 return
             elseif jsonResponse.data then
                 local title = jsonResponse.data.title
@@ -180,18 +198,18 @@ function generateMetadata(progress, photo, callback)
                 end, { timeout = 60 })
 
                 if not success then
-                    LrDialogs.message("Error", "Could not update metadata. Please try again or contact support.")
-                    progress:done()
+                    logError("Could not update metadata.")
+                    callback()
                     return
                 end
             else
-                LrDialogs.message("Error", "Invalid response from the PhotoTag.ai API. Please try again or contact support.")
-                progress:done()
+                logError("Invalid response from API.")
+                callback()
                 return
             end
         else
-            LrDialogs.message("Error", "Failed to generate metadata. Please check your API token or network connection.")
-            progress:done()
+            logError("Failed to generate metadata.")
+            callback()
             return
         end
 
@@ -448,6 +466,9 @@ function showDialogAndGenerateMetadata()
                 progress:setCancelable(true)
                 progress:setPortionComplete(0, #selectedPhotos)
 
+                errorCount = 0
+                errorMessages = {}
+
                 local function processNextPhoto(index, numTasks)
                     if index > #selectedPhotos then
                         return
@@ -455,14 +476,29 @@ function showDialogAndGenerateMetadata()
 
                     local photo = selectedPhotos[index]
 
-                    generateMetadata(progress, photo, function()
-                        if index % numTasks == 0 then
+                    generateMetadata(photo, function()
+                        if index % numTasks == 1 then
                             progress:setPortionComplete(index, #selectedPhotos)
                         end
                         if index < #selectedPhotos and not progress:isCanceled() then
                             processNextPhoto(index + numTasks, numTasks)
-                        else
+                        elseif index == #selectedPhotos then
                             progress:done()
+                            if errorCount > 0 then
+                                local errorMessage = "Failed to generate metadata for " .. errorCount .. " out of " .. #selectedPhotos .. " photo(s)."
+                                if #errorMessages == 1 then
+                                    errorMessage = errorMessage .. " " .. errorMessages[1]
+                                else
+                                    errorMessage = errorMessage .. " Error(s):"
+                                    for _, message in ipairs(errorMessages) do
+                                        errorMessage = errorMessage .. " " .. message
+                                    end
+                                    errorMessage = errorMessage .. " Please contact support for assistance."
+                                end
+                                LrDialogs.message("Error", errorMessage)
+                            else
+                                LrDialogs.message("Success", "Metadata successfully generated for " .. #selectedPhotos .. " photo(s).")
+                            end
                         end
                     end)
 
