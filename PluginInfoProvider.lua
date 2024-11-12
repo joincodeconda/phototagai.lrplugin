@@ -14,6 +14,7 @@ prefs.maxDescriptionCharacters = prefs.maxDescriptionCharacters or nil
 prefs.minDescriptionCharacters = prefs.minDescriptionCharacters or nil
 prefs.maxTitleCharacters = prefs.maxTitleCharacters or nil
 prefs.minTitleCharacters = prefs.minTitleCharacters or nil
+prefs.useMetadataForContext = prefs.useMetadataForContext or false
 prefs.useFileNameForContext = prefs.useFileNameForContext or false
 prefs.singleWordKeywordsOnly = prefs.singleWordKeywordsOnly or false
 prefs.requiredKeywords = prefs.requiredKeywords or nil

@@ -120,6 +120,32 @@ function generateMetadata(photo, callback)
             { name = 'file', fileName = photoPath, filePath = photoPath },
         }
 
+        local context = ""
+        if isValidParam(prefs.customContext) then
+            context = prefs.customContext
+        end
+        if prefs.useMetadataForContext then
+            local existingTitle = photo:getFormattedMetadata("title") or ""
+            local existingDescription = photo:getFormattedMetadata("caption") or ""
+
+            if isValidParam(existingTitle) then
+                if #context > 0 then
+                    context = context .. "; " .. existingTitle
+                else
+                    context = existingTitle
+                end
+            end
+            if isValidParam(existingDescription) then
+                if #context > 0 then
+                    context = context .. "; " .. existingDescription
+                else
+                    context = existingDescription
+                end
+            end
+        end
+        if isValidParam(context) then
+            table.insert(formData, { name = 'customContext', value = context })
+        end
         if isValidParam(prefs.language) then
             table.insert(formData, { name = 'language', value = prefs.language })
         end
@@ -131,9 +157,6 @@ function generateMetadata(photo, callback)
         end
         if isValidParam(prefs.requiredKeywords) then
             table.insert(formData, { name = 'requiredKeywords', value = prefs.requiredKeywords })
-        end
-        if isValidParam(prefs.customContext) then
-            table.insert(formData, { name = 'customContext', value = prefs.customContext })
         end
         if isValidParam(prefs.maxDescriptionCharacters) then
             table.insert(formData, { name = 'maxDescriptionCharacters', value = tostring(prefs.maxDescriptionCharacters) })
@@ -280,6 +303,15 @@ function showDialogAndGenerateMetadata()
                             bind_to_object = prefs,
                         },
                         width_in_chars = 30,
+                    },
+                },
+                f:row {
+                    f:checkbox {
+                        title = "Use metadata for context",
+                        value = LrView.bind {
+                            key = 'useMetadataForContext',
+                            bind_to_object = prefs,
+                        },
                     },
                 },
                 f:row {
