@@ -10,6 +10,7 @@ prefs.maxKeywords = prefs.maxKeywords or nil
 prefs.minKeywords = prefs.minKeywords or nil
 prefs.language = prefs.language or 'en'
 prefs.customContext = prefs.customContext or nil
+prefs.prohibitedCharacters = prefs.prohibitedCharacters or nil
 prefs.maxDescriptionCharacters = prefs.maxDescriptionCharacters or nil
 prefs.minDescriptionCharacters = prefs.minDescriptionCharacters or nil
 prefs.maxTitleCharacters = prefs.maxTitleCharacters or nil
@@ -17,6 +18,8 @@ prefs.minTitleCharacters = prefs.minTitleCharacters or nil
 prefs.useMetadataForContext = prefs.useMetadataForContext or false
 prefs.useFileNameForContext = prefs.useFileNameForContext or false
 prefs.singleWordKeywordsOnly = prefs.singleWordKeywordsOnly or false
+prefs.beCreative = prefs.beCreative or false
+prefs.titleCaseTitle = prefs.titleCaseTitle or false
 prefs.requiredKeywords = prefs.requiredKeywords or nil
 prefs.excludedKeywords = prefs.excludedKeywords or nil
 

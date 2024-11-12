@@ -158,6 +158,9 @@ function generateMetadata(photo, callback)
         if isValidParam(prefs.requiredKeywords) then
             table.insert(formData, { name = 'requiredKeywords', value = prefs.requiredKeywords })
         end
+        if isValidParam(prefs.prohibitedCharacters) then
+            table.insert(formData, { name = 'prohibitedCharacters', value = prefs.prohibitedCharacters })
+        end
         if isValidParam(prefs.maxDescriptionCharacters) then
             table.insert(formData, { name = 'maxDescriptionCharacters', value = tostring(prefs.maxDescriptionCharacters) })
         end
@@ -169,6 +172,12 @@ function generateMetadata(photo, callback)
         end
         if isValidParam(prefs.minTitleCharacters) then
             table.insert(formData, { name = 'minTitleCharacters', value = tostring(prefs.minTitleCharacters) })
+        end
+        if prefs.beCreative then
+            table.insert(formData, { name = 'beCreative', value = tostring(prefs.beCreative) })
+        end
+        if prefs.titleCaseTitle then
+            table.insert(formData, { name = 'titleCaseTitle', value = tostring(prefs.titleCaseTitle) })
         end
         if prefs.useFileNameForContext then
             table.insert(formData, { name = 'useFileNameForContext', value = tostring(prefs.useFileNameForContext) })
@@ -306,6 +315,19 @@ function showDialogAndGenerateMetadata()
                     },
                 },
                 f:row {
+                    f:static_text {
+                        title = "Prohibited characters:",
+                        width = LrView.share 'label_width',
+                    },
+                    f:edit_field {
+                        value = LrView.bind {
+                            key = 'prohibitedCharacters',
+                            bind_to_object = prefs,
+                        },
+                        width_in_chars = 15,
+                    },
+                },
+                f:row {
                     f:checkbox {
                         title = "Use metadata for context",
                         value = LrView.bind {
@@ -403,6 +425,25 @@ function showDialogAndGenerateMetadata()
                         },
                     },
                 },
+                f:row {
+                    f:checkbox {
+                        title = "Title case capitalization for titles",
+                        value = LrView.bind {
+                            key = 'titleCaseTitle',
+                            bind_to_object = prefs,
+                        },
+                    },
+                },
+                f:row {
+                    f:checkbox {
+                        title = "Creative titles and descriptions",
+                        value = LrView.bind {
+                            key = 'beCreative',
+                            bind_to_object = prefs,
+                        },
+                    },
+                },
+
             },
 
             f:group_box {
