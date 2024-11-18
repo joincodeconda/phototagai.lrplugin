@@ -137,6 +137,34 @@ function generateMetadata(photo, callback)
             context = prefs.customContext
         end
         if prefs.useMetadataForContext then
+            local city = photo:getFormattedMetadata("city") or ""
+            local state = photo:getFormattedMetadata("stateProvince") or ""
+            local country = photo:getFormattedMetadata("country") or ""
+
+            if isValidParam(city) then
+                if #context > 0 then
+                    context = context .. "; City: " .. city
+                else
+                    context = "City: " .. city
+                end
+            end
+
+            if isValidParam(state) then
+                if #context > 0 then
+                    context = context .. "; State: " .. state
+                else
+                    context = "State: " .. state
+                end
+            end
+
+            if isValidParam(country) then
+                if #context > 0 then
+                    context = context .. "; Country: " .. country
+                else
+                    context = "Country: " .. country
+                end
+            end
+
             local existingTitle = photo:getFormattedMetadata("title") or ""
             local existingDescription = photo:getFormattedMetadata("caption") or ""
 
@@ -147,6 +175,7 @@ function generateMetadata(photo, callback)
                     context = existingTitle
                 end
             end
+
             if isValidParam(existingDescription) then
                 if #context > 0 then
                     context = context .. "; " .. existingDescription
