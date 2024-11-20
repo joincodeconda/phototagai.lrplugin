@@ -230,7 +230,7 @@ function generateMetadata(photo, callback)
             table.insert(formData, { name = 'excludedKeywords', value = prefs.excludedKeywords })
         end
 
-        local response = LrHttp.postMultipart(url, formData, headers, 15)
+        local response = LrHttp.postMultipart(url, formData, headers, 45)
 
         if LrFileUtils.exists(photoPath) then
             LrFileUtils.delete(photoPath)
