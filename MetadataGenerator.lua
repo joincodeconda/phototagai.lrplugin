@@ -329,6 +329,7 @@ function showDialogAndGenerateMetadata()
                             { title = "Italian", value = "it" },
                             { title = "Portuguese", value = "pt" },
                             { title = "Dutch", value = "nl" },
+                            { title = "Romanian", value = "ro" },
                             { title = "German", value = "de" },
                             { title = "Polish", value = "pl" },
                             { title = "Russian", value = "ru" },
