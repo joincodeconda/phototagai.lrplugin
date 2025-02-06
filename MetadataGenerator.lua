@@ -90,7 +90,7 @@ function generateMetadata(photo, callback)
         local url = "https://server.phototag.ai/api/keywords"
 
         if not isValidParam(apiToken) then
-            logError("Please enter your PhotoTag.ai API token in the Plug-in Manager settings.", nil)
+            logError("Please enter your PhotoTag.ai API token in the plug-in settings under 'File > Plug-in Manager'.", nil)
             callback()
             return
         end
