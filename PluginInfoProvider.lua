@@ -18,6 +18,7 @@ prefs.minTitleCharacters = prefs.minTitleCharacters or nil
 prefs.useMetadataForContext = prefs.useMetadataForContext or false
 prefs.useFileNameForContext = prefs.useFileNameForContext or false
 prefs.singleWordKeywordsOnly = prefs.singleWordKeywordsOnly or false
+prefs.disableTitleDescription = prefs.disableTitleDescription or false
 prefs.beCreative = prefs.beCreative or false
 prefs.titleCaseTitle = prefs.titleCaseTitle or false
 prefs.requiredKeywords = prefs.requiredKeywords or nil

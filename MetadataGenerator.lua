@@ -257,8 +257,10 @@ function generateMetadata(photo, callback)
                 local catalog = LrApplication.activeCatalog()
 
                 local success = catalog:withWriteAccessDo("Update Metadata", function()
-                    photo:setRawMetadata('title', title)
-                    photo:setRawMetadata('caption', description)
+                    if not prefs.disableTitleDescription then
+                        photo:setRawMetadata('title', title)
+                        photo:setRawMetadata('caption', description)
+                    end
 
                     local existingKeywords = photo:getRawMetadata("keywords")
                     for _, existingKeyword in ipairs(existingKeywords) do
@@ -391,10 +393,19 @@ function showDialogAndGenerateMetadata()
             },
 
             f:group_box {
-                title = "Title and Description Settings",
+                title = "Title and Caption Settings",
+                f:row {
+                    f:checkbox {
+                        title = "Disable title and caption generation (add keywords only)",
+                        value = LrView.bind {
+                            key = 'disableTitleDescription',
+                            bind_to_object = prefs,
+                        },
+                    },
+                },
                 f:row {
                     f:static_text {
-                        title = "Max description characters (50-500):",
+                        title = "Max caption characters (50-500):",
                         width = LrView.share 'label_width',
                     },
                     f:edit_field {
@@ -413,7 +424,7 @@ function showDialogAndGenerateMetadata()
                 },
                 f:row {
                     f:static_text {
-                        title = "Min description characters (5-200):",
+                        title = "Min caption characters (5-200):",
                         width = LrView.share 'label_width',
                     },
                     f:edit_field {
@@ -479,7 +490,7 @@ function showDialogAndGenerateMetadata()
                 },
                 f:row {
                     f:checkbox {
-                        title = "Creative titles and descriptions",
+                        title = "Creative titles and captions",
                         value = LrView.bind {
                             key = 'beCreative',
                             bind_to_object = prefs,
