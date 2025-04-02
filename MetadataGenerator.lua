@@ -674,7 +674,7 @@ function showDialogAndGenerateMetadata()
                     local photo = selectedPhotos[index]
 
                     generateMetadata(photo, function()
-                        if index % numTasks == 1 then
+                        if index % numTasks == 0 then
                             progress:setPortionComplete(index, #selectedPhotos)
                         end
                         if index < #selectedPhotos and not progress:isCanceled() then
