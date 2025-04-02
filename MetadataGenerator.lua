@@ -711,7 +711,7 @@ function showDialogAndGenerateMetadata()
 
                 end
 
-                local numParallelTasks = 3
+                local numParallelTasks = 1
                 for i = 1, numParallelTasks do
                     processNextPhoto(i, numParallelTasks)
                 end
