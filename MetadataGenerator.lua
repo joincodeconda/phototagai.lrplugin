@@ -17,7 +17,6 @@ local prefs = LrPrefs.prefsForPlugin()
 local errorCount = 0
 local errorMessages = {}
 local errorFiles = {}
-local storedKeywords = {}
 
 local function contains(array, value)
     for i, v in ipairs(array) do
@@ -42,12 +41,58 @@ local function trim(s)
     return s:match'^%s*(.*%S)' or ''
 end
 
+local function normalizeKeyword(keyword)
+    keyword = trim(keyword)
+    keyword = keyword:gsub("[^%w%s%-']", "")
+    return keyword
+end
+
+local function findKeywordByName(keywordList, name)
+    for _, keyword in ipairs(keywordList) do
+        if normalizeKeyword(keyword:getName()) == name then
+            return keyword
+        end
+        local childMatch = findKeywordByName(keyword:getChildren(), name)
+        if childMatch then
+            return childMatch
+        end
+    end
+    return nil
+end
+
 local function createAndAddKeyword(photo, keywordName)
-    keywordName = trim(keywordName)
-    local catalog = photo.catalog
-    local keyword = storedKeywords[keywordName] or catalog:createKeyword(keywordName, {}, true, nil, true)
-    storedKeywords[keywordName] = keyword
-    photo:addKeyword(keyword)
+    local catalog = LrApplication.activeCatalog()
+
+    if not keywordName then
+        return nil
+    end
+
+    keywordName = normalizeKeyword(keywordName)
+
+    if keywordName == "" then
+        return nil
+    end
+
+    local rootKeywords = catalog:getKeywords()
+    local keyword = findKeywordByName(rootKeywords, keywordName)
+
+    if not keyword then
+        keyword = catalog:createKeyword(keywordName, {}, true, nil, true)
+    end
+
+    local existingKeywords = photo:getRawMetadata("keywords")
+    local alreadyAdded = false
+    for _, existingKeyword in ipairs(existingKeywords) do
+        if normalizeKeyword(existingKeyword:getName()) == keywordName then
+            alreadyAdded = true
+            break
+        end
+    end
+
+    if not alreadyAdded then
+        photo:addKeyword(keyword)
+    end
+
     return keyword
 end
 
@@ -262,13 +307,37 @@ function generateMetadata(photo, callback)
                         photo:setRawMetadata('caption', description)
                     end
 
-                    local existingKeywords = photo:getRawMetadata("keywords")
-                    for _, existingKeyword in ipairs(existingKeywords) do
-                        photo:removeKeyword(existingKeyword)
+                    local existingKeywordNames = {}
+                    for _, k in ipairs(photo:getRawMetadata("keywords")) do
+                        table.insert(existingKeywordNames, normalizeKeyword(k:getName()))
                     end
 
-                    for _, keyword in ipairs(keywords) do
-                        createAndAddKeyword(photo, keyword)
+                    local incomingKeywordNames = {}
+                    for _, k in ipairs(keywords) do
+                        table.insert(incomingKeywordNames, normalizeKeyword(k))
+                    end
+
+                    table.sort(existingKeywordNames)
+                    table.sort(incomingKeywordNames)
+
+                    local areEqual = #existingKeywordNames == #incomingKeywordNames
+                    if areEqual then
+                        for i = 1, #existingKeywordNames do
+                            if existingKeywordNames[i] ~= incomingKeywordNames[i] then
+                                areEqual = false
+                                break
+                            end
+                        end
+                    end
+
+                    if not areEqual then
+                        for _, existingKeyword in ipairs(photo:getRawMetadata("keywords")) do
+                            photo:removeKeyword(existingKeyword)
+                        end
+
+                        for _, keyword in ipairs(keywords) do
+                            createAndAddKeyword(photo, keyword)
+                        end
                     end
                 end, { timeout = 60 })
 
