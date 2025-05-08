@@ -230,6 +230,26 @@ function generateMetadata(photo, callback)
             table.insert(formData, { name = 'excludedKeywords', value = prefs.excludedKeywords })
         end
 
+        if prefs.externalApiType == "openai" then
+            table.insert(formData, { name = 'model', value = "openai" })
+            local openAIToken = LrPasswords.retrieve("openai_api_key") or ""
+            if not isValidParam(openAIToken) then
+                logError("Please enter your OpenAI API key in the plug-in settings under 'File > Plug-in Manager'.", nil)
+                callback()
+                return
+            end
+            table.insert(formData, { name = 'key', value = openAIToken })
+        elseif prefs.externalApiType == "gemini" then
+            table.insert(formData, { name = 'model', value = "gemini" })
+            local geminiToken = LrPasswords.retrieve("gemini_api_key") or ""
+            if not isValidParam(geminiToken) then
+                logError("Please enter your Gemini API key in the plug-in settings under 'File > Plug-in Manager'.", nil)
+                callback()
+                return
+            end
+            table.insert(formData, { name = 'key', value = geminiToken })
+        end
+
         local response = LrHttp.postMultipart(url, formData, headers, 45)
 
         if LrFileUtils.exists(photoPath) then
@@ -314,6 +334,23 @@ function showDialogAndGenerateMetadata()
 
             f:group_box {
                 title = "General Settings",
+                f:row {
+                    f:static_text {
+                        title = "API provider:",
+                        width = LrView.share 'label_width',
+                    },
+                    f:popup_menu {
+                        value = LrView.bind {
+                            key = 'externalApiType',
+                            bind_to_object = prefs,
+                        },
+                        items = {
+                            { title = "PhotoTag.ai (upload credits)", value = "phototagai" },
+                            { title = "OpenAI API", value = "openai" },
+                            { title = "Gemini API", value = "gemini" },
+                        },
+                    },
+                },
                 f:row {
                     f:static_text {
                         title = "Output language:",
