@@ -220,6 +220,9 @@ function generateMetadata(photo, callback)
         if not prefs.saveFile then
             table.insert(formData, { name = 'saveFile', value = 'false' })
         end
+        if prefs.aiModelType then
+            table.insert(formData, { name = 'aiModelType', value = prefs.aiModelType })
+        end
         if prefs.titleCaseTitle then
             table.insert(formData, { name = 'titleCaseTitle', value = tostring(prefs.titleCaseTitle) })
         end
@@ -355,6 +358,22 @@ function showDialogAndGenerateMetadata()
                             { title = "Chinese", value = "zh" },
                             { title = "Hebrew", value = "he" },
                             { title = "Arabic", value = "ar" },
+                        },
+                    },
+                },
+                f:row {
+                    f:static_text {
+                        title = "AI model:",
+                        width = LrView.share 'label_width',
+                    },
+                    f:popup_menu {
+                        value = LrView.bind {
+                            key = 'aiModelType',
+                            bind_to_object = prefs,
+                        },
+                        items = {
+                            { title = "Precision, default (high consistency)", value = "precision" },
+                            { title = "Lightning (allows explicit content, fast results)", value = "lightning" },
                         },
                     },
                 },

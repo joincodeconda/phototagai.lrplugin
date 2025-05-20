@@ -24,6 +24,7 @@ prefs.titleCaseTitle = prefs.titleCaseTitle or false
 prefs.requiredKeywords = prefs.requiredKeywords or nil
 prefs.excludedKeywords = prefs.excludedKeywords or nil
 prefs.saveFile = prefs.saveFile or true
+prefs.aiModelType = prefs.aiModelType or 'precision'
 
 return {
     sectionsForTopOfDialog = function(f, propertyTable)
