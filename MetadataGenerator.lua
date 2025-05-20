@@ -217,6 +217,9 @@ function generateMetadata(photo, callback)
         if prefs.beCreative then
             table.insert(formData, { name = 'beCreative', value = tostring(prefs.beCreative) })
         end
+        if not prefs.saveFile then
+            table.insert(formData, { name = 'saveFile', value = 'false' })
+        end
         if prefs.titleCaseTitle then
             table.insert(formData, { name = 'titleCaseTitle', value = tostring(prefs.titleCaseTitle) })
         end
@@ -314,6 +317,15 @@ function showDialogAndGenerateMetadata()
 
             f:group_box {
                 title = "General Settings",
+                f:row {
+                    f:checkbox {
+                        title = "Save file on web platform",
+                        value = LrView.bind {
+                            key = 'saveFile',
+                            bind_to_object = prefs,
+                        },
+                    },
+                },
                 f:row {
                     f:static_text {
                         title = "Output language:",

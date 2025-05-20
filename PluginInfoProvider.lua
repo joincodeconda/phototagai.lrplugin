@@ -23,6 +23,7 @@ prefs.beCreative = prefs.beCreative or false
 prefs.titleCaseTitle = prefs.titleCaseTitle or false
 prefs.requiredKeywords = prefs.requiredKeywords or nil
 prefs.excludedKeywords = prefs.excludedKeywords or nil
+prefs.saveFile = prefs.saveFile or true
 
 return {
     sectionsForTopOfDialog = function(f, propertyTable)
