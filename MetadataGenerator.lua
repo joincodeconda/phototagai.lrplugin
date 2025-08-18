@@ -235,6 +235,9 @@ function generateMetadata(photo, callback)
         if isValidParam(prefs.excludedKeywords) then
             table.insert(formData, { name = 'excludedKeywords', value = prefs.excludedKeywords })
         end
+        if prefs.disableKeywords then
+            table.insert(formData, { name = 'disableKeywords', value = tostring(prefs.disableKeywords) })
+        end
 
         local response = LrHttp.postMultipart(url, formData, headers, 45)
 
@@ -268,13 +271,15 @@ function generateMetadata(photo, callback)
                         photo:setRawMetadata('caption', description)
                     end
 
-                    local existingKeywords = photo:getRawMetadata("keywords")
-                    for _, existingKeyword in ipairs(existingKeywords) do
-                        photo:removeKeyword(existingKeyword)
-                    end
+                    if not prefs.disableKeywords then
+                        local existingKeywords = photo:getRawMetadata("keywords")
+                        for _, existingKeyword in ipairs(existingKeywords) do
+                            photo:removeKeyword(existingKeyword)
+                        end
 
-                    for _, keyword in ipairs(keywords) do
-                        createAndAddKeyword(photo, keyword)
+                        for _, keyword in ipairs(keywords) do
+                            createAndAddKeyword(photo, keyword)
+                        end
                     end
                 end, { timeout = 60 })
 
@@ -533,6 +538,15 @@ function showDialogAndGenerateMetadata()
 
             f:group_box {
                 title = "Keywords Settings",
+                f:row {
+                    f:checkbox {
+                        title = "Disable keywords generation (add title and caption only)",
+                        value = LrView.bind {
+                            key = 'disableKeywords',
+                            bind_to_object = prefs,
+                        },
+                    },
+                },
                 f:row {
                     f:static_text {
                         title = "Maximum keyword count (5-200):",
