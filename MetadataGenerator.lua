@@ -432,7 +432,7 @@ function showDialogAndGenerateMetadata()
                 title = "Title and Caption Settings",
                 f:row {
                     f:checkbox {
-                        title = "Disable title and caption generation (add keywords only)",
+                        title = "Disable title and caption generation",
                         value = LrView.bind {
                             key = 'disableTitleDescription',
                             bind_to_object = prefs,
@@ -540,7 +540,7 @@ function showDialogAndGenerateMetadata()
                 title = "Keywords Settings",
                 f:row {
                     f:checkbox {
-                        title = "Disable keywords generation (add title and caption only)",
+                        title = "Disable keywords generation",
                         value = LrView.bind {
                             key = 'disableKeywords',
                             bind_to_object = prefs,
