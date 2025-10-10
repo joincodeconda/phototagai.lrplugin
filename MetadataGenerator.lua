@@ -124,8 +124,9 @@ function generateMetadata(photo, callback)
             return
         end
 
+        local cleanApiToken = trim(apiToken or "")
         local headers = {
-            { field = 'Authorization', value = 'Bearer ' .. apiToken },
+            { field = 'authorization', value = 'Bearer ' .. cleanApiToken },
         }
 
         local formData = {
@@ -137,9 +138,9 @@ function generateMetadata(photo, callback)
             context = prefs.customContext
         end
         if prefs.useMetadataForContext then
-            local city = photo:getFormattedMetadata("city") or ""
-            local state = photo:getFormattedMetadata("stateProvince") or ""
-            local country = photo:getFormattedMetadata("country") or ""
+            local city = trim(photo:getFormattedMetadata("city") or photo:getRawMetadata("city") or "")
+            local state = trim(photo:getFormattedMetadata("stateProvince") or photo:getRawMetadata("stateProvince") or photo:getFormattedMetadata("state") or photo:getRawMetadata("state") or "")
+            local country = trim(photo:getFormattedMetadata("country") or photo:getRawMetadata("country") or "")
 
             if isValidParam(city) then
                 if #context > 0 then
@@ -273,8 +274,10 @@ function generateMetadata(photo, callback)
 
                     if not prefs.disableKeywords then
                         local existingKeywords = photo:getRawMetadata("keywords")
-                        for _, existingKeyword in ipairs(existingKeywords) do
-                            photo:removeKeyword(existingKeyword)
+                        if not prefs.preserveExistingKeywords then
+                            for _, existingKeyword in ipairs(existingKeywords) do
+                                photo:removeKeyword(existingKeyword)
+                            end
                         end
 
                         for _, keyword in ipairs(keywords) do
@@ -616,6 +619,15 @@ function showDialogAndGenerateMetadata()
                         title = "Single word keywords only",
                         value = LrView.bind {
                             key = 'singleWordKeywordsOnly',
+                            bind_to_object = prefs,
+                        },
+                    },
+                },
+                f:row {
+                    f:checkbox {
+                        title = "Preserve existing keywords",
+                        value = LrView.bind {
+                            key = 'preserveExistingKeywords',
                             bind_to_object = prefs,
                         },
                     },

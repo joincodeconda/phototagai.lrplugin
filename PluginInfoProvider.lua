@@ -24,6 +24,7 @@ prefs.beCreative = prefs.beCreative or false
 prefs.titleCaseTitle = prefs.titleCaseTitle or false
 prefs.requiredKeywords = prefs.requiredKeywords or nil
 prefs.excludedKeywords = prefs.excludedKeywords or nil
+prefs.preserveExistingKeywords = prefs.preserveExistingKeywords or false
 prefs.saveFile = prefs.saveFile or true
 prefs.aiModelType = prefs.aiModelType or 'precision'
 
