@@ -126,7 +126,9 @@ function generateMetadata(photo, callback)
 
         local cleanApiToken = trim(apiToken or "")
         local headers = {
-            { field = 'authorization', value = 'Bearer ' .. cleanApiToken },
+            { field = 'Authorization', value = 'Bearer ' .. cleanApiToken },
+            { field = 'Accept', value = 'application/json' },
+            { field = 'User-Agent', value = 'LightroomPlugin-PhotoTagAI' },
         }
 
         local formData = {
