@@ -27,6 +27,7 @@ prefs.excludedKeywords = prefs.excludedKeywords or nil
 prefs.preserveExistingKeywords = prefs.preserveExistingKeywords or false
 prefs.saveFile = prefs.saveFile or true
 prefs.aiModelType = prefs.aiModelType or 'precision'
+prefs.fillAltText = prefs.fillAltText or false
 
 return {
     sectionsForTopOfDialog = function(f, propertyTable)

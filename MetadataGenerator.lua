@@ -18,6 +18,11 @@ local errorCount = 0
 local errorMessages = {}
 local errorFiles = {}
 local storedKeywords = {}
+local altTextWriteSupported = nil
+local altTextWarning = nil
+local altTextMissingWarning = nil
+
+prefs.fillAltText = prefs.fillAltText or false
 
 local function contains(array, value)
     for i, v in ipairs(array) do
@@ -42,8 +47,15 @@ local function trim(s)
     return s:match'^%s*(.*%S)' or ''
 end
 
+local function isValidParam(param)
+    return param ~= nil and param ~= ""
+end
+
 local function createAndAddKeyword(photo, keywordName)
-    keywordName = trim(keywordName)
+    keywordName = trim(tostring(keywordName or ""))
+    if not isValidParam(keywordName) then
+        return
+    end
     local catalog = photo.catalog
     local keyword = storedKeywords[keywordName] or catalog:createKeyword(keywordName, {}, true, nil, true)
     storedKeywords[keywordName] = keyword
@@ -51,8 +63,52 @@ local function createAndAddKeyword(photo, keywordName)
     return keyword
 end
 
-local function isValidParam(param)
-    return param ~= nil and param ~= ""
+local function getAltTextFromMetadata(description, title)
+    local altText = ""
+    if isValidParam(description) then
+        altText = trim(tostring(description))
+    end
+    if not isValidParam(altText) and isValidParam(title) then
+        altText = trim(tostring(title))
+    end
+    return isValidParam(altText) and altText or nil
+end
+
+local function trySetAltText(photo, altText)
+    if altTextWriteSupported == false then
+        return false
+    end
+
+    local ok = pcall(function()
+        photo:setRawMetadata('altTextAccessibility', altText)
+    end)
+
+    if not ok then
+        altTextWriteSupported = false
+        altTextWarning = "Alt text could not be saved (requires Lightroom Classic 13.2 or later)."
+    end
+
+    return ok
+end
+
+local function checkAltTextSupport(photo)
+    altTextWriteSupported = pcall(function()
+        photo:getRawMetadata('altTextAccessibility')
+    end)
+
+    if not altTextWriteSupported then
+        altTextWarning = "Alt text could not be saved (requires Lightroom Classic 13.2 or later)."
+    end
+end
+
+local function appendAltTextWarnings(message)
+    if altTextWarning then
+        message = message .. " " .. altTextWarning
+    end
+    if altTextMissingWarning then
+        message = message .. " " .. altTextMissingWarning
+    end
+    return message
 end
 
 local function exportJPEG(photo)
@@ -274,15 +330,24 @@ function generateMetadata(photo, callback)
                         photo:setRawMetadata('caption', description)
                     end
 
+                    if prefs.fillAltText and altTextWriteSupported then
+                        local altText = getAltTextFromMetadata(description, title)
+                        if altText then
+                            trySetAltText(photo, altText)
+                        elseif not altTextMissingWarning then
+                            altTextMissingWarning = "Alt text was not filled for some photos because no caption or title was returned."
+                        end
+                    end
+
                     if not prefs.disableKeywords then
-                        local existingKeywords = photo:getRawMetadata("keywords")
+                        local existingKeywords = photo:getRawMetadata("keywords") or {}
                         if not prefs.preserveExistingKeywords then
                             for _, existingKeyword in ipairs(existingKeywords) do
                                 photo:removeKeyword(existingKeyword)
                             end
                         end
 
-                        for _, keyword in ipairs(keywords) do
+                        for _, keyword in ipairs(keywords or {}) do
                             createAndAddKeyword(photo, keyword)
                         end
                     end
@@ -542,6 +607,25 @@ function showDialogAndGenerateMetadata()
             },
 
             f:group_box {
+                title = "Accessibility Settings",
+                f:row {
+                    f:checkbox {
+                        title = "Fill alt text from generated caption",
+                        value = LrView.bind {
+                            key = 'fillAltText',
+                            bind_to_object = prefs,
+                        },
+                    },
+                },
+                f:row {
+                    f:static_text {
+                        title = "Requires Lightroom Classic 13.2 or later. Uses the AI-generated caption (or title as fallback), even when title and caption writing is disabled.",
+                        fill_horizontal = 1,
+                    },
+                },
+            },
+
+            f:group_box {
                 title = "Keywords Settings",
                 f:row {
                     f:checkbox {
@@ -655,6 +739,13 @@ function showDialogAndGenerateMetadata()
                 errorCount = 0
                 errorMessages = {}
                 errorFiles = {}
+                altTextWriteSupported = nil
+                altTextWarning = nil
+                altTextMissingWarning = nil
+
+                if prefs.fillAltText and #selectedPhotos > 0 then
+                    checkAltTextSupport(selectedPhotos[1])
+                end
 
                 local function processNextPhoto(index, numTasks)
                     if index > #selectedPhotos then
@@ -692,9 +783,10 @@ function showDialogAndGenerateMetadata()
                                     end
                                 end
                                 errorMessage = errorMessage .. " Please contact support for assistance."
-                                LrDialogs.message("Alert", errorMessage)
+                                LrDialogs.message("Alert", appendAltTextWarnings(errorMessage))
                             else
-                                LrDialogs.message("Success", "Metadata successfully generated for " .. #selectedPhotos .. " photo(s).")
+                                local successMessage = "Metadata successfully generated for " .. #selectedPhotos .. " photo(s)."
+                                LrDialogs.message("Success", appendAltTextWarnings(successMessage))
                             end
                         end
                     end)
