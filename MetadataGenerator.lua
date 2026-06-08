@@ -21,6 +21,15 @@ local storedKeywords = {}
 local altTextWriteSupported = nil
 local altTextWarning = nil
 local altTextMissingWarning = nil
+local altTextWriteCount = 0
+local altTextFailCount = 0
+
+local ALT_TEXT_UNSUPPORTED_MESSAGE =
+    "Alt text requires Lightroom Classic 13.2 or later (Help > System Info). Upgrade Lightroom, or turn off \"Fill alt text from generated caption\" and run again."
+local ALT_TEXT_VERIFY_FAILED_MESSAGE =
+    "Alt text could not be verified after saving. Confirm Lightroom Classic 13.2 or later, and add Alt Text (Accessibility) in the Metadata panel via Customize."
+local ALT_TEXT_MISSING_SOURCE_MESSAGE =
+    "Alt text was not filled for some photos because no caption or title was returned from the API."
 
 prefs.fillAltText = prefs.fillAltText or false
 
@@ -74,7 +83,7 @@ local function getAltTextFromMetadata(description, title)
     return isValidParam(altText) and altText or nil
 end
 
-local function trySetAltText(photo, altText)
+local function writeAltTextInGate(photo, altText)
     if altTextWriteSupported == false then
         return false
     end
@@ -85,10 +94,25 @@ local function trySetAltText(photo, altText)
 
     if not ok then
         altTextWriteSupported = false
-        altTextWarning = "Alt text could not be saved (requires Lightroom Classic 13.2 or later)."
+        altTextWarning = ALT_TEXT_UNSUPPORTED_MESSAGE
+        return false
     end
 
-    return ok
+    return true
+end
+
+local function verifyAltTextWrite(photo, altText)
+    local readBack = nil
+    local readOk = pcall(function()
+        readBack = photo:getRawMetadata('altTextAccessibility')
+    end)
+
+    if readOk and trim(tostring(readBack or "")) == altText then
+        return true
+    end
+
+    altTextWarning = ALT_TEXT_VERIFY_FAILED_MESSAGE
+    return false
 end
 
 local function checkAltTextSupport(photo)
@@ -97,18 +121,64 @@ local function checkAltTextSupport(photo)
     end)
 
     if not altTextWriteSupported then
-        altTextWarning = "Alt text could not be saved (requires Lightroom Classic 13.2 or later)."
+        altTextWarning = ALT_TEXT_UNSUPPORTED_MESSAGE
     end
+
+    return altTextWriteSupported
 end
 
 local function appendAltTextWarnings(message)
-    if altTextWarning then
-        message = message .. " " .. altTextWarning
-    end
     if altTextMissingWarning then
         message = message .. " " .. altTextMissingWarning
+    elseif altTextWarning and not message:find(altTextWarning, 1, true) then
+        message = message .. " " .. altTextWarning
     end
     return message
+end
+
+local function buildCompletionMessage(selectedCount, hadErrors)
+    local message
+
+    if hadErrors then
+        message = "Generated metadata for " .. (selectedCount - errorCount) .. " out of " .. selectedCount .. " photo(s)."
+        if #errorMessages > 0 then
+            message = message .. " Error(s):"
+            for i = 1, math.min(5, #errorMessages) do
+                message = message .. " " .. errorMessages[i]
+            end
+            if #errorMessages > 5 then
+                message = message .. " (and more...)"
+            end
+        end
+        if #errorFiles > 0 then
+            message = message .. " Failed file(s):"
+            for i = 1, math.min(5, #errorFiles) do
+                message = message .. " " .. errorFiles[i]
+            end
+            if #errorFiles > 5 then
+                message = message .. " (and more...)"
+            end
+        end
+        message = message .. " Please contact support for assistance."
+    else
+        message = "Metadata successfully generated for " .. selectedCount .. " photo(s)."
+    end
+
+    if prefs.fillAltText then
+        if altTextWriteCount > 0 then
+            message = message .. " Alt text saved for " .. altTextWriteCount .. " photo(s). View it under Alt Text (Accessibility) in the Metadata panel (use Customize if the field is hidden)."
+            if altTextFailCount > 0 then
+                message = message .. " Alt text could not be saved for " .. altTextFailCount .. " photo(s)."
+            end
+        elseif altTextFailCount > 0 then
+            message = message .. " Alt text was not saved for any photo."
+            if altTextWarning then
+                message = message .. " " .. altTextWarning
+            end
+        end
+    end
+
+    return appendAltTextWarnings(message)
 end
 
 local function exportJPEG(photo)
@@ -323,6 +393,7 @@ function generateMetadata(photo, callback)
                 local keywords = jsonResponse.data.keywords
 
                 local catalog = LrApplication.activeCatalog()
+                local pendingAltText = nil
 
                 local success = catalog:withWriteAccessDo("Update Metadata", function()
                     if not prefs.disableTitleDescription then
@@ -330,12 +401,23 @@ function generateMetadata(photo, callback)
                         photo:setRawMetadata('caption', description)
                     end
 
-                    if prefs.fillAltText and altTextWriteSupported then
-                        local altText = getAltTextFromMetadata(description, title)
-                        if altText then
-                            trySetAltText(photo, altText)
-                        elseif not altTextMissingWarning then
-                            altTextMissingWarning = "Alt text was not filled for some photos because no caption or title was returned."
+                    if prefs.fillAltText then
+                        if altTextWriteSupported == false then
+                            altTextFailCount = altTextFailCount + 1
+                        else
+                            local altText = getAltTextFromMetadata(description, title)
+                            if altText then
+                                if writeAltTextInGate(photo, altText) then
+                                    pendingAltText = altText
+                                else
+                                    altTextFailCount = altTextFailCount + 1
+                                end
+                            else
+                                altTextFailCount = altTextFailCount + 1
+                                if not altTextMissingWarning then
+                                    altTextMissingWarning = ALT_TEXT_MISSING_SOURCE_MESSAGE
+                                end
+                            end
                         end
                     end
 
@@ -357,6 +439,14 @@ function generateMetadata(photo, callback)
                     logError("Could not update metadata.", fileName)
                     callback()
                     return
+                end
+
+                if pendingAltText then
+                    if verifyAltTextWrite(photo, pendingAltText) then
+                        altTextWriteCount = altTextWriteCount + 1
+                    else
+                        altTextFailCount = altTextFailCount + 1
+                    end
                 end
             else
                 logError("Invalid response from API.", fileName)
@@ -619,7 +709,7 @@ function showDialogAndGenerateMetadata()
                 },
                 f:row {
                     f:static_text {
-                        title = "Requires Lightroom Classic 13.2 or later. Uses the AI-generated caption (or title as fallback), even when title and caption writing is disabled.",
+                        title = "Requires Lightroom Classic 13.2 or later. Fills the Alt Text (Accessibility) metadata field (not Caption). If you do not see it, open the Metadata panel and click Customize to add that field. Uses the AI-generated caption (or title as fallback), even when title and caption writing is disabled.",
                         fill_horizontal = 1,
                     },
                 },
@@ -729,6 +819,26 @@ function showDialogAndGenerateMetadata()
         })
 
         if result == "ok" then
+            if #selectedPhotos == 0 then
+                LrDialogs.message(
+                    "No Photos Selected",
+                    "Select one or more photos in the Library, then run the plug-in again.",
+                    "info"
+                )
+                return
+            end
+
+            if prefs.fillAltText then
+                if not checkAltTextSupport(selectedPhotos[1]) then
+                    LrDialogs.message(
+                        "Alt Text Not Supported",
+                        altTextWarning,
+                        "warning"
+                    )
+                    return
+                end
+            end
+
             LrFunctionContext.callWithContext('generateMetadata', function(context)
                 local progress = LrProgressScope({
                     title = "Generating metadata for selected photos...",
@@ -739,64 +849,46 @@ function showDialogAndGenerateMetadata()
                 errorCount = 0
                 errorMessages = {}
                 errorFiles = {}
-                altTextWriteSupported = nil
+                storedKeywords = {}
+                altTextWriteSupported = prefs.fillAltText and true or nil
                 altTextWarning = nil
                 altTextMissingWarning = nil
+                altTextWriteCount = 0
+                altTextFailCount = 0
+                local batchFinished = false
 
-                if prefs.fillAltText and #selectedPhotos > 0 then
-                    checkAltTextSupport(selectedPhotos[1])
+                local function finishBatch()
+                    if batchFinished then
+                        return
+                    end
+                    batchFinished = true
+
+                    progress:done()
+                    local hadErrors = errorCount > 0
+                    local completionMessage = buildCompletionMessage(#selectedPhotos, hadErrors)
+                    local shouldAlertAltText = prefs.fillAltText and altTextFailCount > 0
+                    if hadErrors or shouldAlertAltText then
+                        LrDialogs.message("Alert", completionMessage)
+                    else
+                        LrDialogs.message("Success", completionMessage)
+                    end
                 end
 
-                local function processNextPhoto(index, numTasks)
-                    if index > #selectedPhotos then
+                local function processNextPhoto(index)
+                    if progress:isCanceled() or index > #selectedPhotos then
+                        finishBatch()
                         return
                     end
 
                     local photo = selectedPhotos[index]
 
                     generateMetadata(photo, function()
-                        if index % numTasks == 1 then
-                            progress:setPortionComplete(index, #selectedPhotos)
-                        end
-                        if index < #selectedPhotos and not progress:isCanceled() then
-                            processNextPhoto(index + numTasks, numTasks)
-                        elseif index == #selectedPhotos then
-                            progress:done()
-                            if errorCount > 0 then
-                                local errorMessage = "Generated metadata for " .. (#selectedPhotos - errorCount) .. " out of " .. #selectedPhotos .. " photo(s)."
-                                if #errorMessages > 0 then
-                                    errorMessage = errorMessage .. " Error(s):"
-                                    for i = 1, math.min(5, #errorMessages) do
-                                        errorMessage = errorMessage .. " " .. errorMessages[i]
-                                    end
-                                    if #errorMessages > 5 then
-                                        errorMessage = errorMessage .. " (and more...)"
-                                    end
-                                end
-                                if #errorFiles > 0 then
-                                    errorMessage = errorMessage .. " Failed file(s):"
-                                    for i = 1, math.min(5, #errorFiles) do
-                                        errorMessage = errorMessage .. " " .. errorFiles[i]
-                                    end
-                                    if #errorFiles > 5 then
-                                        errorMessage = errorMessage .. " (and more...)"
-                                    end
-                                end
-                                errorMessage = errorMessage .. " Please contact support for assistance."
-                                LrDialogs.message("Alert", appendAltTextWarnings(errorMessage))
-                            else
-                                local successMessage = "Metadata successfully generated for " .. #selectedPhotos .. " photo(s)."
-                                LrDialogs.message("Success", appendAltTextWarnings(successMessage))
-                            end
-                        end
+                        progress:setPortionComplete(index, #selectedPhotos)
+                        processNextPhoto(index + 1)
                     end)
-
                 end
 
-                local numParallelTasks = 3
-                for i = 1, numParallelTasks do
-                    processNextPhoto(i, numParallelTasks)
-                end
+                processNextPhoto(1)
             end)
         end
     end)

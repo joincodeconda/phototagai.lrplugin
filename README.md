@@ -1,14 +1,15 @@
 # PhotoTag.ai Metadata Generator for Lightroom Classic
 
-The **PhotoTag.ai Metadata Generator** is a Lightroom Classic plug-in that automates the generation of metadata (title, description, and keywords) for photos in your catalog using the [PhotoTag.ai API](https://www.phototag.ai). This tool makes it easy to add AI-generated, context-aware metadata to your images, streamlining the process of organizing and optimizing your photo collection.
+The **PhotoTag.ai Metadata Generator** is a Lightroom Classic plug-in that automates the generation of metadata (title, description, keywords, and optional alt text) for photos in your catalog using the [PhotoTag.ai API](https://www.phototag.ai). This tool makes it easy to add AI-generated, context-aware metadata to your images, streamlining the process of organizing and optimizing your photo collection.
 
 ## Features
 
 - **Automatic Metadata Generation**: Generate **title**, **description**, and **keywords** for your photos automatically with AI.
+- **Optional Alt Text**: Fill Lightroom's **Alt Text (Accessibility)** field from the AI-generated caption (requires Lightroom Classic 13.2 or later).
 - **Multi-Language Support**: Generate metadata in multiple languages, including English, Spanish, French, and more.
 - **Custom Keyword Options**: Customize the number of keywords, required and excluded keywords, and context-specific keywords for more accurate results.
 - **Batch Processing**: Process multiple photos in a single run, with progress tracking.
-- **Integration with Lightroom**: The generated metadata is written directly to Lightroom's native fields (title, caption, and keywords).
+- **Integration with Lightroom**: The generated metadata is written directly to Lightroom's native fields (title, caption, keywords, and alt text when enabled).
 
 ## Installation
 
@@ -25,23 +26,33 @@ The **PhotoTag.ai Metadata Generator** is a Lightroom Classic plug-in that autom
 
 1. **Select Photos**: Select the photos you want to generate metadata for in Lightroom.
 2. **Run the Plugin**: Go to `Library` > `Plug-in Extras` > `Generate Metadata for Selected Photos`.
-3. **Progress Bar**: The plug-in will display a progress bar while it processes the selected photos.
-4. **Review and Edit Metadata**: After processing, the generated title, description, and keywords will be added to the selected photos. You can review or further edit the metadata as needed.
+3. **Configure Options**: In the dialog, scroll to **Accessibility Settings** and check **Fill alt text from generated caption** if you want alt text (Lightroom Classic 13.2+ only).
+4. **Progress Bar**: The plug-in will display a progress bar while it processes the selected photos.
+5. **Review and Edit Metadata**: After processing, review title, caption, keywords, and alt text as needed.
+
+### Alt Text (Accessibility)
+
+- Alt text is written to the **Alt Text (Accessibility)** metadata field, not the Caption field.
+- Requires **Lightroom Classic 13.2 or later** (check **Help > System Info**).
+- If you do not see the field, open the **Metadata** panel in the Library module and click **Customize** at the bottom to add **Alt Text (Accessibility)** to your view.
+- The option is off by default. When enabled on an unsupported Lightroom version, the plug-in will warn you before processing starts.
 
 ## Configuration
 
-You can customize the following settings via the Lightroom Plug-in Manager:
+Settings in the run dialog (Library > Plug-in Extras):
+
+- **Fill alt text from generated caption**: Writes AI caption (or title fallback) to Alt Text (Accessibility).
+- **Preserve existing keywords**: Adds new keywords without removing yours.
+- **Disable title and caption generation**: Leaves existing title/caption unchanged.
+- Language, keyword limits, custom context, and more.
+
+Plug-in Manager settings:
 
 - **API Token**: Your PhotoTag.ai API key.
-- **Language**: Choose the language for generated metadata (e.g., English, Spanish, French, etc.).
-- **Maximum Keywords**: Set the maximum number of keywords to be generated for each photo.
-- **Required Keywords**: Specify keywords that must be included in the generated metadata.
-- **Excluded Keywords**: Define keywords that should not appear in the metadata.
-- **Custom Context**: Provide additional context to improve the accuracy of metadata generation.
-- **Maximum/Minimum Characters**: Set character limits for titles and descriptions.
 
 ## Requirements
 
-- Adobe Lightroom Classic (version 5.0 or higher)
+- Adobe Lightroom Classic (version 5.0 or higher for title, caption, and keywords)
+- Adobe Lightroom Classic **13.2 or later** for alt text (Accessibility) support
 - A PhotoTag.ai API key (available from [PhotoTag.ai](https://www.phototag.ai/api))
 - An active internet connection (for PhotoTag.ai API)
