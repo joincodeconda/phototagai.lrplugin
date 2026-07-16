@@ -159,7 +159,7 @@ local function buildCompletionMessage(selectedCount, hadErrors)
                 message = message .. " (and more...)"
             end
         end
-        message = message .. " Please use our contact page (link in the site footer) for assistance."
+        message = message .. " Please contact support for assistance."
     else
         message = "Metadata successfully generated for " .. selectedCount .. " photo(s)."
     end
