@@ -56,3 +56,13 @@ Plug-in Manager settings:
 - Adobe Lightroom Classic **13.2 or later** for alt text (Accessibility) support
 - A PhotoTag.ai API key (available from [PhotoTag.ai](https://www.phototag.ai/api))
 - An active internet connection (for PhotoTag.ai API)
+
+## Release deployment
+
+A commit and push do not publish an installable Lightroom plug-in release.
+
+1. Update the `VERSION` value in `Info.lua` when the release changes user-visible plug-in behavior.
+2. Load the reviewed plug-in directory in a supported Lightroom Classic version and verify installation, settings persistence, metadata generation, batch handling, and relevant version-specific behavior.
+3. Package the `.lrplugin` directory through the established release channel without local settings, tokens, catalogs, previews, or test photos.
+4. Publish the package and release notes through the approved distribution location, then install that exact package on a clean test setup.
+5. Retain the prior package so users can roll back if installation or runtime verification fails.
