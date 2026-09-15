@@ -59,10 +59,8 @@ Plug-in Manager settings:
 
 ## Release deployment
 
-A commit and push do not publish an installable Lightroom plug-in release.
+A commit and push do not publish an installable Lightroom plug-in release. Every change intended for release must update `VERSION` in `Info.lua`, including source, settings, UI, packaging, and documentation changes. Use one new version for the complete change set.
 
-1. Update the `VERSION` value in `Info.lua` when the release changes user-visible plug-in behavior.
-2. Load the reviewed plug-in directory in a supported Lightroom Classic version and verify installation, settings persistence, metadata generation, batch handling, and relevant version-specific behavior.
-3. Package the `.lrplugin` directory through the established release channel without local settings, tokens, catalogs, previews, or test photos.
-4. Publish the package and release notes through the approved distribution location, then install that exact package on a clean test setup.
-5. Retain the prior package so users can roll back if installation or runtime verification fails.
+After the reviewed change is committed and pushed, the repository owner must manually create `phototagai.lrplugin.zip` and publish a GitHub release. The PhotoTag.ai site then discovers the latest GitHub release automatically.
+
+Follow the complete versioning, clean ZIP packaging, GitHub naming, verification, and rollback procedure in [RELEASING.md](RELEASING.md). Every agent that changes this repository must end its handoff with a `MANUAL ACTION REQUIRED!` section that states the new version and reminds the owner to package and publish the release after commit and push.

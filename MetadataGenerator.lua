@@ -60,6 +60,13 @@ local function isValidParam(param)
     return param ~= nil and param ~= ""
 end
 
+local function isBatchTerminalApiError(message)
+    local normalized = string.lower(tostring(message or ""))
+    return string.find(normalized, "not enough upload credits", 1, true) == 1
+        or string.find(normalized, "invalid api token", 1, true) == 1
+        or string.find(normalized, "no api token provided", 1, true) == 1
+end
+
 local function createAndAddKeyword(photo, keywordName)
     keywordName = trim(tostring(keywordName or ""))
     if not isValidParam(keywordName) then
@@ -136,11 +143,21 @@ local function appendAltTextWarnings(message)
     return message
 end
 
-local function buildCompletionMessage(selectedCount, hadErrors)
+local function buildCompletionMessage(selectedCount, processedCount, hadErrors, wasCanceled)
     local message
 
+    if wasCanceled then
+        message = "Metadata generation was canceled after " .. processedCount .. " out of " .. selectedCount .. " photo(s)."
+        if hadErrors then
+            message = message .. " Generated metadata for " .. math.max(0, processedCount - errorCount) .. " processed photo(s)."
+        end
+    elseif hadErrors then
+        message = "Generated metadata for " .. math.max(0, processedCount - errorCount) .. " out of " .. selectedCount .. " photo(s)."
+    else
+        message = "Metadata successfully generated for " .. selectedCount .. " photo(s)."
+    end
+
     if hadErrors then
-        message = "Generated metadata for " .. (selectedCount - errorCount) .. " out of " .. selectedCount .. " photo(s)."
         if #errorMessages > 0 then
             message = message .. " Error(s):"
             for i = 1, math.min(5, #errorMessages) do
@@ -160,8 +177,6 @@ local function buildCompletionMessage(selectedCount, hadErrors)
             end
         end
         message = message .. " Please contact support for assistance."
-    else
-        message = "Metadata successfully generated for " .. selectedCount .. " photo(s)."
     end
 
     if prefs.fillAltText then
@@ -213,34 +228,42 @@ end
 function generateMetadata(photo, callback)
     LrTasks.startAsyncTask(function()
         local apiToken = LrPasswords.retrieve("phototagai_token") or ""
+        local cleanApiToken = trim(apiToken)
         local url = "https://server.phototag.ai/api/keywords"
 
-        if not isValidParam(apiToken) then
+        if not isValidParam(cleanApiToken) then
             logError("Please enter your PhotoTag.ai API token in the plug-in settings under 'File > Plug-in Manager'.", nil)
+            callback(true)
+            return
+        end
+
+        if not photo then
+            logError("File failed to load.", nil)
             callback()
             return
         end
 
         local fileName = photo:getFormattedMetadata("fileName") or nil
 
-        if not photo then
-            logError("File failed to load.", fileName)
-            callback()
-            return
-        end
-
         local photoPath = exportJPEG(photo)
 
         if not isValidParam(photoPath) then
-            if LrFileUtils.exists(photoPath) then
-                LrFileUtils.delete(photoPath)
-            end
             logError("File was not supported.", fileName)
             callback()
             return
         end
 
-        local fileSize = LrFileUtils.fileAttributes(photoPath).fileSize
+        local fileAttributes = LrFileUtils.fileAttributes(photoPath)
+        if not fileAttributes or not fileAttributes.fileSize then
+            if LrFileUtils.exists(photoPath) then
+                LrFileUtils.delete(photoPath)
+            end
+            logError("File attributes could not be read.", fileName)
+            callback()
+            return
+        end
+
+        local fileSize = fileAttributes.fileSize
         if fileSize > 30 * 1024 * 1024 then
             if LrFileUtils.exists(photoPath) then
                 LrFileUtils.delete(photoPath)
@@ -250,7 +273,6 @@ function generateMetadata(photo, callback)
             return
         end
 
-        local cleanApiToken = trim(apiToken or "")
         local headers = {
             { field = 'Authorization', value = 'Bearer ' .. cleanApiToken },
             { field = 'Accept', value = 'application/json' },
@@ -384,8 +406,9 @@ function generateMetadata(photo, callback)
             end
 
             if jsonResponse.error then
-                logError(tostring(jsonResponse.error) .. ".", fileName)
-                callback()
+                local errorMessage = tostring(jsonResponse.error)
+                logError(errorMessage .. ".", fileName)
+                callback(isBatchTerminalApiError(errorMessage))
                 return
             elseif jsonResponse.data then
                 local title = jsonResponse.data.title
@@ -856,8 +879,9 @@ function showDialogAndGenerateMetadata()
                 altTextWriteCount = 0
                 altTextFailCount = 0
                 local batchFinished = false
+                local processedCount = 0
 
-                local function finishBatch()
+                local function finishBatch(wasCanceled)
                     if batchFinished then
                         return
                     end
@@ -865,9 +889,11 @@ function showDialogAndGenerateMetadata()
 
                     progress:done()
                     local hadErrors = errorCount > 0
-                    local completionMessage = buildCompletionMessage(#selectedPhotos, hadErrors)
+                    local completionMessage = buildCompletionMessage(#selectedPhotos, processedCount, hadErrors, wasCanceled)
                     local shouldAlertAltText = prefs.fillAltText and altTextFailCount > 0
-                    if hadErrors or shouldAlertAltText then
+                    if wasCanceled then
+                        LrDialogs.message("Canceled", completionMessage, "info")
+                    elseif hadErrors or shouldAlertAltText then
                         LrDialogs.message("Alert", completionMessage)
                     else
                         LrDialogs.message("Success", completionMessage)
@@ -875,16 +901,24 @@ function showDialogAndGenerateMetadata()
                 end
 
                 local function processNextPhoto(index)
-                    if progress:isCanceled() or index > #selectedPhotos then
-                        finishBatch()
+                    if progress:isCanceled() then
+                        finishBatch(true)
+                        return
+                    elseif index > #selectedPhotos then
+                        finishBatch(false)
                         return
                     end
 
                     local photo = selectedPhotos[index]
 
-                    generateMetadata(photo, function()
+                    generateMetadata(photo, function(stopBatch)
+                        processedCount = processedCount + 1
                         progress:setPortionComplete(index, #selectedPhotos)
-                        processNextPhoto(index + 1)
+                        if stopBatch then
+                            finishBatch(false)
+                        else
+                            processNextPhoto(index + 1)
+                        end
                     end)
                 end
 
