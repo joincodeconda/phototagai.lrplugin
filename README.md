@@ -57,10 +57,6 @@ Plug-in Manager settings:
 - A PhotoTag.ai API key (available from [PhotoTag.ai](https://www.phototag.ai/api))
 - An active internet connection (for PhotoTag.ai API)
 
-## Release deployment
+## Releases
 
-A commit and push do not publish an installable Lightroom plug-in release. Every change intended for release must update `VERSION` in `Info.lua`, including source, settings, UI, packaging, and documentation changes. Use one new version for the complete change set.
-
-After the reviewed change is committed and pushed, the repository owner must manually create `phototagai.lrplugin.zip` and publish a GitHub release. The PhotoTag.ai site then discovers the latest GitHub release automatically.
-
-Follow the complete versioning, clean ZIP packaging, GitHub naming, verification, and rollback procedure in [RELEASING.md](RELEASING.md). Every agent that changes this repository must end its handoff with a `MANUAL ACTION REQUIRED!` section that states the new version and reminds the owner to package and publish the release after commit and push.
+An installable version is published as a GitHub release with a packaged plug-in. See [RELEASING.md](RELEASING.md) for the package format and verification steps.
